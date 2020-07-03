@@ -7,10 +7,7 @@ const todos = [
 ];
 
 const server = http.createServer((req, res) => {
-  res.writeHead(400, {
-    "Content-type": "application/json",
-    "X-Powered-By": "Node.js",
-  });
+  const { method, url } = req;
   let body = [];
 
   req
@@ -19,15 +16,39 @@ const server = http.createServer((req, res) => {
     })
     .on("end", () => {
       body = Buffer.concat(body).toString();
-      console.log(body);
+
+      let status = 404;
+      const response = {
+        success: false,
+        error: null,
+        data: null,
+      };
+
+      if (method === "GET" && url === "/todos") {
+        status = 200;
+        response.success = true;
+        response.data = todos;
+      } else if (method === "POST" && url === "/todos") {
+        const { id, text } = JSON.parse(body);
+
+        if (!id || !text) {
+          status = 400;
+          response.error = "please add id and text";
+        } else {
+          todos.push({ id, text });
+          status = 201;
+          response.success = true;
+          response.data = todos;
+        }
+      }
+
+      res.writeHead(status, {
+        "Content-type": "application/json",
+        "X-Powered-By": "Node.js",
+      });
+
+      res.end(JSON.stringify({ response }));
     });
-  res.end(
-    JSON.stringify({
-      success: true,
-      error: "Please add email",
-      data: null,
-    })
-  );
 });
 const PORT = 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
